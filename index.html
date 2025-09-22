@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>キャリア評価システム（スタンドアロンHTML）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f8ff; --panel:#ffffff; --muted:#6b7280; --text:#0f172a; --blue:#3b82f6; --green:#10b981; --orange:#f59e0b; --purple:#8b5cf6; --red:#ef4444;
+  --border:#e5e7eb;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:'Noto Sans JP',system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial,'Apple Color Emoji','Segoe UI Emoji',sans-serif;background:linear-gradient(135deg,#eef2ff,#fafafa);color:var(--text)}
+.container{max-width:1200px;margin:0 auto;padding:24px}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.h1{font-size:28px;font-weight:700;margin:0 0 6px}
+.muted{color:var(--muted);font-size:14px;margin:0}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;cursor:pointer}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#f8fafc;color:#111827}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+.grid{display:grid;gap:16px}
+.grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kpi-num{font-size:28px;font-weight:800}
+.kpi-label{font-size:12px;color:var(--muted);margin-top:6px}
+.tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.tab{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px;text-align:center;cursor:pointer}
+.tab.active{background:#eef2ff;border-color:#c7d2fe;font-weight:700}
+.section{display:none}
+.section.active{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.col{flex:1 1 260px}
+label{display:block;font-size:14px;margin:8px 0 6px;color:#374151}
+input[type="text"],input[type="number"],select,textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+textarea{resize:vertical}
+.btn-primary{background:var(--blue);color:#fff;border:0}
+.btn-ghost{background:transparent;border:1px dashed var(--border);}
+.notice{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:12px;margin-bottom:12px}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left;font-size:14px}
+.progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
+.progress>span{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple))}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#1e3a8a;border:1px solid #c7d2fe;font-size:12px}
+.rank{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:12px}
+.rank.you{background:#eff6ff;border:2px solid #93c5fd}
+.slider-wrap{display:flex;align-items:center;gap:10px}
+.slider-wrap input[type="range"]{flex:1}
+.icon{font-size:18px}
+.small{font-size:12px;color:var(--muted)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div>
+        <h1 class="h1">キャリア評価システム</h1>
+        <p class="muted">こんにちは、山田太郎さん。あなたの成長をサポートします。</p>
+      </div>
+      <button class="btn" id="btnNotify">🔔 通知 <span class="badge" id="badgeUnread">2</span></button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-target="dashboard">ダッシュボード</div>
+      <div class="tab" data-target="t360">360度評価</div>
+      <div class="tab" data-target="feedback">フィードバック</div>
+      <div class="tab" data-target="bonus">ピアボーナス</div>
+      <div class="tab" data-target="planning">キャリアプラン</div>
+    </div>
+
+    <!-- Dashboard -->
+    <section class="section active" id="dashboard">
+      <div class="grid grid-4">
+        <div class="card">
+          <div class="small">現在の等級</div>
+          <div class="kpi-num" style="color:var(--blue)">4等級</div>
+          <div class="small">協創者</div>
+          <div class="small">⏰ 次回評価: 2025年10月</div>
+        </div>
+        <div class="card">
+          <div class="small">総合スコア</div>
+          <div class="kpi-num" style="color:var(--green)">3.7</div>
+          <div class="small">/ 5.0　<span style="color:var(--green)">↗ +0.3</span></div>
+        </div>
+        <div class="card">
+          <div class="small">受取ピアボーナス</div>
+          <div class="kpi-num" style="color:var(--purple)">47</div>
+          <div class="small">今月の合計（部署内 3位 🥉）</div>
+        </div>
+        <div class="card">
+          <div class="small">フィードバック</div>
+          <div class="kpi-num" style="color:var(--orange)">28</div>
+          <div class="small">今月受信（平均 7件/週）</div>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:16px">
+        <div class="card">
+          <h3>三軸レーダーチャート <span class="badge">現在値 vs 目標値</span></h3>
+          <canvas id="radar" height="280"></canvas>
+        </div>
+        <div class="card">
+          <h3>成長トレンド（6ヶ月）</h3>
+          <canvas id="trend" height="280"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>次のマイルストーン</h3>
+        <div id="milestones" class="grid" style="grid-template-columns:1fr"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>最近のフィードバック</h3>
+        <div id="recentFeedback" class="grid" style="grid-template-columns:1fr"></div>
+      </div>
+    </section>
+
+    <!-- 360 -->
+    <section class="section" id="t360">
+      <div class="card">
+        <h3>360度評価入力</h3>
+        <div class="notice">
+          <strong>評価のポイント</strong>
+          <ul class="small">
+            <li>• 具体的な行動や事例に基づいて評価してください</li>
+            <li>• 建設的なフィードバックを心がけてください</li>
+            <li>• 評価は匿名で集計されます</li>
+          </ul>
+        </div>
+
+        <div id="sliders"></div>
+
+        <label>コメント（任意）</label>
+        <textarea id="comment360" rows="3" placeholder="具体的なエピソードや改善提案があれば記入してください"></textarea>
+
+        <label>総合コメント（任意）</label>
+        <textarea id="commentAll" rows="4" placeholder="全体的な印象や特記事項を記入してください"></textarea>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn btn-primary" id="btnSubmit360">📨 送信する</button>
+          <button class="btn btn-ghost">一時保存</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Feedback -->
+    <section class="section" id="feedback">
+      <div class="card">
+        <h3>新しいフィードバックを送る</h3>
+        <label>送り先</label>
+        <select id="fbTo">
+          <option>佐藤花子</option><option>鈴木一郎</option><option>田中美咲</option><option>中村健太</option>
+        </select>
+        <label>フィードバックの種類</label>
+        <div class="row">
+          <button class="btn" data-fbtype="praise">👍 称賛</button>
+          <button class="btn" data-fbtype="thanks">❤️ 感謝</button>
+          <button class="btn" data-fbtype="idea">💡 アイデア</button>
+        </div>
+        <label>メッセージ</label>
+        <textarea id="fbMessage" rows="3" placeholder="フィードバックの内容を入力してください"></textarea>
+        <button class="btn btn-primary" id="btnSendFb">送信</button>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>フィードバック履歴</h3>
+        <div id="fbList" class="grid" style="grid-template-columns:1fr"></div>
+      </div>
+    </section>
+
+    <!-- Bonus -->
+    <section class="section" id="bonus">
+      <div class="card">
+        <h3>ピアボーナスを送る <span class="badge">残り: <span id="remain">10</span> / 10</span></h3>
+        <label>送り先</label>
+        <select id="bonusTo">
+          <option>佐藤花子</option><option>鈴木一郎</option><option>田中美咲</option><option>中村健太</option>
+        </select>
+        <label>ポイント数</label>
+        <div class="slider-wrap">
+          <input type="range" id="bonusAmt" min="1" max="10" value="3">
+          <div class="kpi-num" style="color:var(--purple)"><span id="bonusAmtTxt">3</span></div>
+        </div>
+        <label>カテゴリー</label>
+        <select id="bonusCat">
+          <option>助けてくれた</option><option>良いアイデアをくれた</option><option>協力してくれた</option><option>教えてくれた</option>
+        </select>
+        <label>メッセージ</label>
+        <textarea id="bonusMsg" rows="3" placeholder="感謝のメッセージを添えましょう"></textarea>
+        <button class="btn btn-primary" id="btnSendBonus">🏅 送る</button>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>ピアボーナス履歴</h3>
+        <div id="bonusList" class="grid" style="grid-template-columns:1fr"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>今月のランキング</h3>
+        <div id="rankList" class="grid" style="grid-template-columns:1fr"></div>
+      </div>
+    </section>
+
+    <!-- Planning -->
+    <section class="section" id="planning">
+      <div class="card">
+        <h3>年次目標の進捗</h3>
+        <div class="grid">
+          <div>
+            <div class="row" style="justify-content:space-between"><span>関係性スコア目標</span><strong style="color:var(--blue)">4.0 / 4.5</strong></div>
+            <div class="progress"><span style="width:89%"></span></div>
+            <div class="small">あと0.5ポイントで目標達成！</div>
+          </div>
+          <div>
+            <div class="row" style="justify-content:space-between"><span>専門性スコア目標</span><strong style="color:var(--blue)">3.0 / 3.8</strong></div>
+            <div class="progress"><span style="width:79%"></span></div>
+            <div class="small">専門資格取得で大きく前進できます</div>
+          </div>
+          <div>
+            <div class="row" style="justify-content:space-between"><span>価値創造スコア目標</span><strong style="color:var(--blue)">4.0 / 4.2</strong></div>
+            <div class="progress"><span style="width:95%"></span></div>
+            <div class="small">もう少しで目標達成！</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>AIアシスタントからの提案</h3>
+        <ul class="small">
+          <li>• 部門横断プロジェクトへの参加を推奨します（関係性スコア向上）</li>
+          <li>• データ分析の専門スキル習得を検討してください（専門性強化）</li>
+          <li>• メンター制度への参加で若手育成経験を積めます</li>
+        </ul>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h3>キャリアパスシミュレーション</h3>
+        <div class="grid">
+          <div class="card" style="border:2px solid var(--blue);background:#eff6ff">
+            <div class="row" style="justify-content:space-between;align-items:center;">
+              <strong>現在</strong><span class="pill">4等級</span>
+            </div>
+            <div class="small">協創者として活躍中</div>
+            <div class="small">• 総合スコア: 3.7/5.0<br>• 在籍期間: 2年3ヶ月</div>
+          </div>
+          <div class="card" style="border:2px dashed #c084fc;background:#faf5ff">
+            <div class="row" style="justify-content:space-between;align-items:center;">
+              <strong>1年後の予測</strong><span class="pill" style="background:#ede9fe;border-color:#c4b5fd;color:#5b21b6">5等級候補</span>
+            </div>
+            <div class="small">予測スコア: 4.2/5.0／必要実績: プロジェクトリード経験</div>
+          </div>
+          <div class="card" style="border:2px dashed #fdba74;background:#fff7ed">
+            <div class="row" style="justify-content:space-between;align-items:center;">
+              <strong>2–3年後の目標</strong><span class="pill" style="background:#ffedd5;border-color:#fdba74;color:#7c2d12">6等級</span>
+            </div>
+            <div class="small">シニアスペシャリスト / マネージャー<br>目標スコア: 4.5/5.0</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="small" style="margin-top:24px">このHTMLはReact依存を排し、スタンドアロンで動作するよう移植したものです。</p>
+  </div>
+
+<script>
+// ---------- Tabs ----------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.target).classList.add('active');
+  });
+});
+
+// ---------- Charts ----------
+const radar = new Chart(document.getElementById('radar'), {
+  type: 'radar',
+  data: {
+    labels: ['関係性','専門性','価値創造'],
+    datasets: [
+      { label:'現在値', data:[4,3,4], backgroundColor:'rgba(59,130,246,.35)', borderColor:'#3b82f6' },
+      { label:'目標値', data:[4.5,3.8,4.2], backgroundColor:'rgba(16,185,129,.25)', borderColor:'#10b981' }
+    ]
+  },
+  options: { scales: { r: { min:0, max:5 } } }
+});
+
+const trend = new Chart(document.getElementById('trend'), {
+  type: 'line',
+  data: {
+    labels: ['4月','5月','6月','7月','8月','9月'],
+    datasets: [
+      { label:'関係性', data:[3.5,3.7,3.8,4.0,4.0,4.0], borderColor:'#3b82f6', tension:.3 },
+      { label:'専門性', data:[2.8,3.0,3.2,3.0,3.0,3.0], borderColor:'#10b981', tension:.3 },
+      { label:'価値創造', data:[3.2,3.5,3.7,3.9,4.0,4.0], borderColor:'#f59e0b', tension:.3 }
+    ]
+  },
+  options: { scales: { y: { min:0, max:5 } } }
+});
+
+// ---------- Milestones ----------
+const milestones = [
+  { id:1, text:'部門横断プロジェクトのリード', completed:false, deadline:'2025年12月' },
+  { id:2, text:'データサイエンス資格の取得', completed:true, deadline:'2025年9月' },
+  { id:3, text:'業務プロセス改善提案の実現', completed:false, deadline:'2025年11月' },
+  { id:4, text:'チームメンバーのメンタリング', completed:false, deadline:'2025年10月' }
+];
+const msWrap = document.getElementById('milestones');
+function renderMilestones(){
+  msWrap.innerHTML='';
+  milestones.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='row'; div.style.alignItems='center';
+    div.innerHTML=`
+      <button data-id="${m.id}" class="btn" style="min-width:42px">${m.completed?'✅':'⬜'}</button>
+      <div class="col">
+        <div ${m.completed?'style="text-decoration:line-through;color:#9ca3af"':''}>${m.text}</div>
+        <div class="small">期限: ${m.deadline}</div>
+      </div>
+      <span class="badge">${m.completed?'完了':'進行中'}</span>
+    `;
+    msWrap.appendChild(div);
+  });
+}
+msWrap.addEventListener('click', (e)=>{
+  if(e.target.closest('button')){
+    const id = Number(e.target.closest('button').dataset.id);
+    const m = milestones.find(x=>x.id===id); if(!m) return; m.completed = !m.completed; renderMilestones();
+  }
+});
+renderMilestones();
+
+// ---------- Recent Feedback ----------
+const recentFeedback = [
+  { from:'上司：中村部長', message:'プロジェクト管理能力が向上。次はチームリードを任せたい。', icon:'📈', color:'var(--blue)' },
+  { from:'同僚：佐藤さん', message:'いつも助けてくれて感謝。頼りになります！', icon:'❤️', color:'var(--red)' },
+  { from:'顧客：A社 山本様', message:'丁寧かつ迅速な対応に満足。また依頼させてください。', icon:'👍', color:'var(--green)' }
+];
+const fbRecentWrap = document.getElementById('recentFeedback');
+recentFeedback.forEach(f=>{
+  const div=document.createElement('div');
+  div.className='card';
+  div.innerHTML = `<div style="display:flex;gap:10px;align-items:flex-start">
+    <div class="icon" style="color:${f.color}">${f.icon}</div>
+    <div><div style="font-weight:600">${f.from}</div><div class="small" style="margin-top:4px">${f.message}</div></div>
+  </div>`;
+  fbRecentWrap.appendChild(div);
+});
+
+// ---------- 360 sliders ----------
+const factors = {
+  trust:'信頼関係の構築',
+  teamwork:'チームへの貢献',
+  communication:'コミュニケーション力',
+  cooperation:'協調性',
+  leadership:'リーダーシップ'
+};
+const sliders = document.getElementById('sliders');
+const scores = {};
+Object.entries(factors).forEach(([k,label])=>{
+  scores[k]=3;
+  const wrap=document.createElement('div');
+  wrap.className='card';
+  wrap.innerHTML=`
+    <label>${label}</label>
+    <div class="slider-wrap">
+      <span class="small" style="width:60px">低い(1)</span>
+      <input type="range" min="1" max="5" step="1" value="3" data-key="${k}">
+      <span class="small" style="width:100px;text-align:right">非常に高い(5)</span>
+      <div style="width:48px;text-align:center">
+        <div class="kpi-num" style="color:var(--blue)" id="${k}_val">3</div>
+        <div class="small" id="${k}_star">★★★</div>
+      </div>
+    </div>`;
+  sliders.appendChild(wrap);
+});
+sliders.addEventListener('input',(e)=>{
+  const r=e.target; if(r.type!=='range') return;
+  const k=r.dataset.key; scores[k]=Number(r.value);
+  document.getElementById(k+'_val').textContent=r.value;
+  document.getElementById(k+'_star').textContent='★'.repeat(Number(r.value));
+});
+document.getElementById('btnSubmit360').addEventListener('click', ()=>{
+  const avg = Object.values(scores).reduce((a,b)=>a+b,0)/Object.values(scores).length;
+  alert(`360度評価を送信しました（平均スコア: ${avg.toFixed(1)}）`);
+  // reset
+  sliders.querySelectorAll('input[type="range"]').forEach(r=>{r.value=3;r.dispatchEvent(new Event('input'))});
+  document.getElementById('comment360').value='';
+  document.getElementById('commentAll').value='';
+});
+
+// ---------- Feedback form ----------
+const fbTypeButtons = document.querySelectorAll('[data-fbtype]');
+let fbType='praise';
+fbTypeButtons.forEach(b=>b.addEventListener('click',()=>{fbType=b.dataset.fbtype; fbTypeButtons.forEach(x=>x.classList.remove('btn-primary')); b.classList.add('btn-primary')}));
+const fbList = document.getElementById('fbList');
+const seedFeedbacks = [
+  { from:'田中美咲', to:'山田太郎', message:'プレゼンが素晴らしかった！', type:'praise', time:'2時間前', icon:'👍' },
+  { from:'佐藤健一', to:'山田太郎', message:'資料作成ありがとうございました。', type:'thanks', time:'5時間前', icon:'🙏' },
+  { from:'鈴木花子', to:'山田太郎', message:'新しいアプローチのアイデア、面白い！', type:'idea', time:'1日前', icon:'💡' }
+];
+function renderFbList(list){
+  fbList.innerHTML='';
+  list.forEach(f=>{
+    const el=document.createElement('div'); el.className='card';
+    el.innerHTML=`<div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><span style="font-size:20px">${f.icon}</span> <b>${f.from}</b> <span class="small">→</span> ${f.to}<div class="small" style="margin-top:4px">${f.message}</div></div>
+      <span class="small">${f.time}</span>
+    </div>`;
+    fbList.appendChild(el);
+  });
+}
+renderFbList(seedFeedbacks);
+document.getElementById('btnSendFb').addEventListener('click', ()=>{
+  const to=document.getElementById('fbTo').value;
+  const message=document.getElementById('fbMessage').value.trim();
+  if(!message){alert('メッセージを入力してください');return;}
+  const icon = fbType==='praise'?'👍':(fbType==='thanks'?'🙏':'💡');
+  seedFeedbacks.unshift({from:'山田太郎（あなた）',to,message,type:fbType,time:'たった今',icon});
+  renderFbList(seedFeedbacks);
+  document.getElementById('fbMessage').value='';
+  alert(`${to}さんにフィードバックを送信しました`);
+});
+
+// ---------- Bonus ----------
+let remain=10;
+const remainEl=document.getElementById('remain');
+const bonusAmt=document.getElementById('bonusAmt');
+const bonusAmtTxt=document.getElementById('bonusAmtTxt');
+bonusAmt.addEventListener('input',()=>bonusAmtTxt.textContent=bonusAmt.value);
+const bonusList=document.getElementById('bonusList');
+const rankList=document.getElementById('rankList');
+const bonuses=[
+  { from:'田中美咲', to:'山田太郎', points:5, category:'助けてくれた', message:'システムトラブル対応ありがとう！', time:'3時間前' },
+  { from:'鈴木花子', to:'山田太郎', points:3, category:'協力してくれた', message:'プロジェクトの協力感謝！', time:'1日前' }
+];
+function renderBonus(){
+  bonusList.innerHTML='';
+  bonuses.forEach(b=>{
+    const el=document.createElement('div'); el.className='card';
+    el.innerHTML=`<div class="row" style="justify-content:space-between">
+      <div><b>${b.from}</b> <span class="small">→</span> ${b.to} <span class="pill" style="margin-left:6px">${b.points}pt</span><div class="small" style="margin-top:4px">${b.category}／${b.message}</div></div>
+      <span class="small">${b.time}</span>
+    </div>`;
+    bonusList.appendChild(el);
+  });
+}
+renderBonus();
+document.getElementById('btnSendBonus').addEventListener('click', ()=>{
+  const to=document.getElementById('bonusTo').value;
+  const cat=document.getElementById('bonusCat').value;
+  const msg=document.getElementById('bonusMsg').value.trim();
+  const pts=Number(bonusAmt.value);
+  if(!msg){alert('メッセージを入力してください');return;}
+  if(pts>remain){alert('残ポイントが足りません');return;}
+  bonuses.unshift({from:'山田太郎（あなた）',to,points:pts,category:cat,message:msg,time:'たった今'});
+  remain-=pts; remainEl.textContent=remain; renderBonus();
+  document.getElementById('bonusMsg').value='';
+  alert(`${to}さんに${pts}ポイント送りました`);
+});
+const rankData=[
+  { rank:1, name:'佐藤花子', points:89, dept:'営業部', emoji:'👩' },
+  { rank:2, name:'鈴木一郎', points:76, dept:'開発部', emoji:'👨' },
+  { rank:3, name:'山田太郎', points:47, dept:'企画部', emoji:'👤', you:true },
+  { rank:4, name:'田中美咲', points:42, dept:'営業部', emoji:'👩' },
+  { rank:5, name:'中村健太', points:38, dept:'開発部', emoji:'👨' }
+];
+rankData.forEach(p=>{
+  const el=document.createElement('div'); el.className='rank '+(p.you?'you':'');
+  el.innerHTML=`<div class="row" style="align-items:center">
+    <div style="width:42px;height:42px;border-radius:999px;display:flex;align-items:center;justify-content:center;background:#f3f4f6;font-weight:700">${p.rank}</div>
+    <div style="font-size:22px;margin:0 10px">${p.emoji}</div>
+    <div><div style="font-weight:700">${p.name} ${p.you?'<span class="pill" style="margin-left:6px">あなた</span>':''}</div><div class="small">${p.dept}</div></div>
+  </div>
+  <div style="font-size:22px;font-weight:800;color:var(--purple)">${p.points}</div>`;
+  rankList.appendChild(el);
+});
+</script>
+</body>
+</html>
